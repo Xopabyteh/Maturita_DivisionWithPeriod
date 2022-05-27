@@ -1,72 +1,66 @@
-﻿using System.Globalization;
-using System.Text;
+﻿using System.Text;
 
 class FunkyCalculator
 {
 
-    /*
-     * 100/6=16,6^
-     *  40
-     *   40
-     *
-     *
-     */
     public string DivideWithPeriod(double num, double divider)
     {
+        if (divider == 0)
+            throw new DivideByZeroException();
+
         StringBuilder result = new StringBuilder();
-        string numString = num.ToString(CultureInfo.InvariantCulture);
-        double currentDivSegment = num; //"Podtržená část při dělení"
-        int currentDigitPointer = 0;
+        List<double> rememberedRemainder = new List<double>();
+        string digits = num.ToString();
 
-        bool addedSeparator = false; //extremni hack nevim jak to udelat lepe
-        int separatorIndex = 0;
+        double currentDividePart = num;
+        int digitPointer = 0;
+        int digitsBeforePeriod = 0;
+        bool addedDecimalPoint = false;
 
-        //Získání nejmenšíh dělitelné části čísla
-        for (var i = 1; i <= numString.Length; i++)
+        //Find the smallest divide segment 100,0
+        for (int i = 1; i < digits.Length+1; i++,digitPointer++)
         {
-            double subPart = double.Parse(numString.Substring(0, i));
-            if (subPart > divider)
+            currentDividePart = double.Parse(digits.Substring(0,i));
+            if (divider < currentDividePart)
             {
-                currentDivSegment = subPart;
-                currentDigitPointer = i-1;
                 break;
             }
         }
 
-        HashSet<double> remainderSet = new HashSet<double>();
         while (true)
         {
-            int div = (int)currentDivSegment / (int)divider;
-            result.Append(div);
-            double mod = currentDivSegment % divider;
-            currentDigitPointer++;
+            digitPointer++;
+            int div = (int) currentDividePart / (int) divider;
+            int mod = (int) currentDividePart % (int) divider;
 
-            
-            //Normalni cifry
-            if(currentDigitPointer < numString.Length)
-                currentDivSegment = double.Parse($"{mod}{numString[currentDigitPointer]}");
-            
-            else
+            result.Append(div);
+
+            //No more digits, must give zeros now
+            if (digitPointer > digits.Length-1)
             {
-                //Desetinne cifry
-                if (!addedSeparator)
+                if (!addedDecimalPoint)
                 {
-                    addedSeparator = true;
-                    separatorIndex = currentDigitPointer+1;
-                    result.Append(".");
+                    result.Append('.');
+                    addedDecimalPoint = true;
                 }
-                currentDivSegment = mod * 10;
-                if (remainderSet.Contains(currentDivSegment))
+                currentDividePart = mod * 10;
+                //We hit the end of the period
+                if (rememberedRemainder.Contains(mod))
                 {
-                    //Opakovany zbytek po deleni
-                    result.Insert(separatorIndex, '(');
-                    result.Append(")");
+                    result.Insert(rememberedRemainder.IndexOf(mod) + 2 + digitsBeforePeriod, '(');
+                    result.Append(')');
                     break;
                 }
-                
-                else 
-                    remainderSet.Add(currentDivSegment);
-                
+                else
+                {
+                    rememberedRemainder.Add(mod);
+                }
+            }
+            //We have digits, use them in the next dividing
+            else
+            {
+                digitsBeforePeriod++;
+                currentDividePart = double.Parse($"{mod}{digits[digitPointer]}");
             }
             if (mod == 0)
             {
@@ -75,5 +69,6 @@ class FunkyCalculator
         }
         return result.ToString();
     }
+
 
 }
